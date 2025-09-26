@@ -1,4 +1,4 @@
-name: Cache Example
+name: Cache Example Alternative
 
 on:
   push:
@@ -14,11 +14,16 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Cache dependencies
-        id: cache-deps
+        id: cache-step
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: cache-83953fd
 
       - name: prime-cache-83953fd
-        run: echo "Cache hit: ${{ steps.cache-deps.outputs.cache-hit || 'miss' }}"
+        run: |
+          if [ "${{ steps.cache-step.outputs.cache-hit }}" == 'true' ]; then
+            echo "Cache hit!"
+          else
+            echo "Cache miss!"
+          fi
