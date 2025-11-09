@@ -1,36 +1,85 @@
-name: Matrix Build with Artifacts
+name: Matrix Build CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: [14, 16, 18]   # ✅ ensures 3 jobs run in parallel
+        node-version: [14, 16, 18, 20]
+        include:
+          - node-version: 14
+            variant: legacy
+          - node-version: 16
+            variant: stable
+          - node-version: 18
+            variant: current
+          - node-version: 20
+            variant: latest
+    
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: matrix-e86dd6b
-        run: echo "Building for Node.js version ${{ matrix.version }}"
-
+        run: |
+          echo "Building for Node.js version ${{ matrix.node-version }}"
+          echo "Variant: ${{ matrix.variant }}"
+          echo "Matrix job running in parallel"
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.version }}
-
+          node-version: ${{ matrix.node-version }}
+      
       - name: Generate build artifact
         run: |
-          echo "Build output for Node.js version ${{ matrix.version }}" > output-${{ matrix.version }}.txt
-          echo "Build completed successfully for version ${{ matrix.version }}" >> output-${{ matrix.version }}.txt
-          cat output-${{ matrix.version }}.txt
-
-      - name: Upload artifact
+          mkdir -p build
+          cat > build/output.txt << EOF
+          Build Information
+          ==================
+          Node Version: ${{ matrix.node-version }}
+          Variant: ${{ matrix.variant }}
+          Build Time: $(date)
+          Runner OS: ${{ runner.os }}
+          Job ID: ${{ github.job }}
+          Run Number: ${{ github.run_number }}
+          
+          Build completed successfully for Node.js ${{ matrix.node-version }}
+          EOF
+          
+          cat > build/metadata.json << EOF
+          {
+            "node_version": "${{ matrix.node-version }}",
+            "variant": "${{ matrix.variant }}",
+            "build_time": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "runner_os": "${{ runner.os }}",
+            "job_id": "${{ github.job }}",
+            "run_number": "${{ github.run_number }}"
+          }
+          EOF
+          
+          echo "Artifact contents:"
+          cat build/output.txt
+          echo ""
+          cat build/metadata.json
+      
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-e86dd6b-v${{ matrix.version }}
-          path: output-${{ matrix.version }}.txt
+          name: build-e86dd6b-node${{ matrix.node-version }}
+          path: build/
+          retention-days: 7
+      
+      - name: Verify artifact creation
+        run: |
+          echo "Artifact created: build-e86dd6b-node${{ matrix.node-version }}"
+          ls -la build/
+          echo "File sizes:"
+          wc -c build/*
