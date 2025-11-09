@@ -7,11 +7,10 @@ on:
 
 jobs:
   build:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: [14, 16, 18]  # Example Node.js versions for matrix
-    runs-on: ubuntu-latest
-
+        version: [14, 16, 18]   # ✅ ensures 3 jobs run in parallel
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,7 +26,8 @@ jobs:
       - name: Generate build artifact
         run: |
           echo "Build output for Node.js version ${{ matrix.version }}" > output-${{ matrix.version }}.txt
-          echo "Timestamp: $(date)" >> output-${{ matrix.version }}.txt
+          echo "Build completed successfully for version ${{ matrix.version }}" >> output-${{ matrix.version }}.txt
+          cat output-${{ matrix.version }}.txt
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
